@@ -20,6 +20,7 @@ export default function StoriesReader({ initialSource, initialAng }: { initialSo
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
   const sourceRef = useRef(initialSource);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
 
   const source = sourceRef.current;
   const info = SOURCES.find((s) => s.key === source) || SOURCES[0];
@@ -61,14 +62,21 @@ export default function StoriesReader({ initialSource, initialAng }: { initialSo
     fetchPage(ang, ang > (data?.ang || 0) ? "left" : "right");
   }
 
-  function handleTap(e: React.MouseEvent) {
-    if (!data || loading) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    if (x < rect.width * 0.3) goTo(data.ang - 1);
-    else if (x > rect.width * 0.7) goTo(data.ang + 1);
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
   }
 
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (!data || loading) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 60) {
+      if (diff > 0) goTo(data.ang + 1);
+      else goTo(data.ang - 1);
+    }
+  }
+
+  const hasPrev = data && data.ang > 1;
+  const hasNext = data && data.ang < info.pages;
   const progressPct = data ? (data.ang / info.pages) * 100 : 0;
 
   return (
@@ -93,15 +101,42 @@ export default function StoriesReader({ initialSource, initialAng }: { initialSo
         <div className="w-6" />
       </div>
 
-      {/* Tap zones overlay (only when not scrolling) */}
-      <div className="absolute left-0 top-0 bottom-0 w-[30%] z-10" onClick={() => { if (data && !loading) goTo(data.ang - 1); }} />
-      <div className="absolute right-0 top-0 bottom-0 w-[30%] z-10" onClick={() => { if (data && !loading) goTo(data.ang + 1); }} />
+      {/* Navigate buttons — visible on sm+ screens, hidden on small touch screens */}
+      {hasPrev && (
+        <button
+          onClick={() => goTo(data!.ang - 1)}
+          className="hidden sm:flex absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/80 transition-all"
+        >
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      )}
+      {hasNext && (
+        <button
+          onClick={() => goTo(data!.ang + 1)}
+          className="hidden sm:flex absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/80 transition-all"
+        >
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+
+      {/* Mobile tap zones — narrow strips on edges, only active on small screens */}
+      {hasPrev && (
+        <div className="sm:hidden absolute left-0 top-0 bottom-0 w-16 z-10" onClick={() => goTo(data!.ang - 1)} />
+      )}
+      {hasNext && (
+        <div className="sm:hidden absolute right-0 top-0 bottom-0 w-16 z-10" onClick={() => goTo(data!.ang + 1)} />
+      )}
 
       {/* Scrollable content */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-6 pt-20 pb-32"
-        onClick={handleTap}
+        className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-12 pt-20 pb-32"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {loading && (
           <div className="flex items-center justify-center gap-2 text-white/30 pt-32">
@@ -116,16 +151,16 @@ export default function StoriesReader({ initialSource, initialAng }: { initialSo
         {!loading && data && data.verses.length > 0 && (
           <div
             key={data.ang}
-            className={`max-w-lg mx-auto space-y-6 ${
+            className={`max-w-2xl mx-auto space-y-6 ${
               slideDir ? (slideDir === "left" ? "animate-slide-right" : "animate-slide-left") : "animate-fade-slide"
             }`}
           >
-            {data.verses.map((verse, i) => (
+            {data.verses.map((verse) => (
               <div key={verse.id} className="space-y-2 pb-4 border-b border-white/5 last:border-b-0">
-                <p className="text-xl md:text-2xl font-likhita leading-relaxed text-white" dir="auto">{verse.gurmukhi}</p>
-                <p className="text-sm leading-relaxed text-[#a89bc2] border-l-2 border-[#d4a574]/40 pl-3">{verse.translation}</p>
+                <p className="text-xl md:text-2xl lg:text-3xl font-likhita leading-relaxed text-white" dir="auto">{verse.gurmukhi}</p>
+                <p className="text-sm md:text-base leading-relaxed text-[#a89bc2] border-l-2 border-[#d4a574]/40 pl-3">{verse.translation}</p>
                 {(verse.raag || verse.author) && (
-                  <p className="text-[10px] text-white/20">{verse.raag}{verse.author ? ` • ${verse.author}` : ""}</p>
+                  <p className="text-[10px] md:text-xs text-white/20">{verse.raag}{verse.author ? ` • ${verse.author}` : ""}</p>
                 )}
                 {data.explanation && (
                   <div className="mt-3 pl-3 border-l-2 border-[#d4a574]/20">
@@ -145,7 +180,7 @@ export default function StoriesReader({ initialSource, initialAng }: { initialSo
       </div>
 
       <div className="absolute bottom-16 left-0 right-0 text-center pb-1 pointer-events-none">
-        <p className="text-[10px] text-white/20">Tap sides to navigate • ← → keys</p>
+        <p className="text-[10px] sm:text-xs text-white/20">← swipe or use arrow keys →</p>
       </div>
 
       <BottomNav />
@@ -179,8 +214,8 @@ function ExplanationDisplay({ text, mode }: { text: string; mode: "per-verse" | 
       <div className="pt-6 border-t border-white/10 mt-6 space-y-3">
         {sections.map((s, i) => (
           <div key={i}>
-            <p className="text-xs font-medium text-[#d4a574] uppercase tracking-wider mb-1">{s.title}</p>
-            <p className="text-sm text-[#a89bc2] leading-relaxed">{s.body}</p>
+            <p className="text-xs md:text-sm font-medium text-[#d4a574] uppercase tracking-wider mb-1">{s.title}</p>
+            <p className="text-sm md:text-base text-[#a89bc2] leading-relaxed">{s.body}</p>
           </div>
         ))}
       </div>
@@ -190,7 +225,7 @@ function ExplanationDisplay({ text, mode }: { text: string; mode: "per-verse" | 
   return (
     <div className="space-y-1.5">
       {sections.map((s, i) => (
-        <p key={i} className="text-xs text-[#a89bc2] leading-relaxed">
+        <p key={i} className="text-xs md:text-sm text-[#a89bc2] leading-relaxed">
           <span className="font-medium text-[#d4a574]">{s.title}:</span> {s.body}
         </p>
       ))}
