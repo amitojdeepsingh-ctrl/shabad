@@ -1,0 +1,8 @@
+services:
+  shabad:
+    build: ./web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web/data:/app/data
+    restart: unless-stopped
