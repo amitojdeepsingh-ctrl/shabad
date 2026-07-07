@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { SOURCES } from "@/lib/types";
+import BottomNav from "@/components/BottomNav";
 
 export default function Home() {
   const [bookmark, setBookmark] = useState<{ source: string; page: number } | null>(null);
@@ -10,77 +11,60 @@ export default function Home() {
   useEffect(() => {
     const saved = localStorage.getItem("shabad.bookmark");
     if (saved) {
-      try {
-        setBookmark(JSON.parse(saved));
-      } catch {}
+      try { setBookmark(JSON.parse(saved)); } catch {}
     }
   }, []);
 
-  const bookmarkInfo = bookmark
-    ? SOURCES.find((s) => s.key === bookmark.source)
-    : null;
+  const bookmarkInfo = bookmark ? SOURCES.find((s) => s.key === bookmark.source) : null;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-      <h1 className="text-4xl font-bold text-amber-900 mb-4">
-        Shabad
-      </h1>
-      <p className="text-lg text-stone-600 mb-2">
-        Wisdom from Sri Guru Granth Sahib, Sri Dasam Granth &amp; Vaaran Bhai Gurdas
-        — in words a child can understand and an elder can feel.
-      </p>
-      <p className="text-sm text-stone-400 mb-10">
-        Gurmukhi &middot; English Translation &middot; Simple Meaning
-      </p>
+    <div className="min-h-dvh bg-gradient-to-b from-[#0f0a1a] via-[#1a1035] to-[#0f0a1a] flex flex-col">
+      <div className="h-16" />
 
-      {bookmark && bookmarkInfo && (
-        <Link
-          href={`/ang/${bookmark.page}${bookmark.source !== "ggs" ? `?source=${bookmark.source}` : ""}`}
-          className="block max-w-xl mx-auto mb-6 p-4 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors text-left"
-        >
-          <p className="text-xs text-amber-600 uppercase tracking-wider font-medium mb-1">Continue Reading</p>
-          <p className="text-sm text-stone-700">
-            {bookmarkInfo.label} — {bookmarkInfo.pageLabel} {bookmark.page}
-          </p>
-        </Link>
-      )}
-
-      <div className="grid gap-6 sm:grid-cols-2 text-left max-w-xl mx-auto">
-        <Link
-          href="/ang/1"
-          className="block p-6 rounded-xl border border-stone-200 bg-white hover:border-amber-300 hover:shadow-sm transition-all"
-        >
-          <h2 className="font-semibold text-amber-800 mb-1">Read Scriptures</h2>
-          <p className="text-sm text-stone-500">
-            Browse Sri Guru Granth Sahib (1,430 Angs), Sri Dasam Granth (1,428 Pannas), and Vaaran Bhai Gurdas (41 Vaars).
-          </p>
-        </Link>
-
-        <Link
-          href="/ask"
-          className="block p-6 rounded-xl border border-stone-200 bg-white hover:border-amber-300 hover:shadow-sm transition-all"
-        >
-          <h2 className="font-semibold text-amber-800 mb-1">Ask Shabad</h2>
-          <p className="text-sm text-stone-500">
-            Facing a problem? Ask and receive wisdom from the Guru relevant to your situation.
-          </p>
-        </Link>
-
-        <Link
-          href="/donate"
-          className="block p-6 rounded-xl border border-stone-200 bg-white hover:border-amber-300 hover:shadow-sm transition-all sm:col-span-2"
-        >
-          <h2 className="font-semibold text-amber-800 mb-1">Support This Work</h2>
-          <p className="text-sm text-stone-500">
-            100% of donations go to maintaining this platform and spreading Gurbani. Nothing is used for personal purposes.
-          </p>
-        </Link>
+      <div className="px-6 pt-8 pb-6 text-center">
+        <h1 className="text-3xl font-bold text-white tracking-tight">Shabad</h1>
+        <p className="text-sm text-[#a89bc2] mt-2 max-w-sm mx-auto leading-relaxed">
+          Wisdom from the Guru — in words a child can understand and an elder can feel.
+        </p>
       </div>
 
-      <p className="mt-12 text-xs text-stone-400 leading-relaxed max-w-md mx-auto">
-        Guru Granth Sahib translation by Dr. Sant Singh Khalsa. Dasam Granth and Vaaran translations as provided by GurbaniNow.
-        All scripture is presented with the utmost respect and without alteration.
-      </p>
+      {bookmark && bookmarkInfo && (
+        <div className="px-6 mb-6">
+          <Link
+            href={`/ang/${bookmark.page}${bookmark.source !== "ggs" ? `?source=${bookmark.source}` : ""}`}
+            className="block w-full p-4 rounded-2xl bg-gradient-to-r from-[#d4a574]/20 to-[#e8c99b]/10 border border-[#d4a574]/30 hover:border-[#d4a574]/60 transition-all"
+          >
+            <p className="text-[10px] uppercase tracking-widest text-[#d4a574] font-medium mb-1">Continue Reading</p>
+            <p className="text-sm text-white/80">{bookmarkInfo.label} — {bookmarkInfo.pageLabel} {bookmark.page}</p>
+          </Link>
+        </div>
+      )}
+
+      <div className="flex-1 px-6 space-y-3 pb-24">
+        <p className="text-[10px] uppercase tracking-widest text-white/30 font-medium mb-2">Scriptures</p>
+        {SOURCES.map((s) => (
+          <Link
+            key={s.key}
+            href={s.key === "ggs" ? "/ang/1" : `/ang/1?source=${s.key}`}
+            className="block p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all"
+          >
+            <p className="text-base font-medium text-white">{s.label}</p>
+            <p className="text-xs text-[#a89bc2] mt-1">{s.pages} {s.pageLabel}s — start reading</p>
+          </Link>
+        ))}
+
+        <div className="pt-3">
+          <Link
+            href="/ask"
+            className="block p-5 rounded-2xl bg-gradient-to-r from-[#d4a574]/10 to-transparent border border-[#d4a574]/20 hover:border-[#d4a574]/40 transition-all"
+          >
+            <p className="text-base font-medium text-white">Search Shabad</p>
+            <p className="text-xs text-[#a89bc2] mt-1">Find verses by keyword across all scriptures</p>
+          </Link>
+        </div>
+      </div>
+
+      <BottomNav />
     </div>
   );
 }
