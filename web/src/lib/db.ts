@@ -6,7 +6,19 @@ let SQL: any = null
 let db: any = null
 let initPromise: Promise<void> | null = null
 
-const DB_PATH = path.join(process.cwd(), 'data', 'gurugranth.db')
+function findDbPath(): string {
+  const candidates = [
+    path.join(process.cwd(), 'public', 'data', 'gurugranth.db'),
+    path.join(process.cwd(), 'data', 'gurugranth.db'),
+    path.join(process.cwd(), '.next', 'server', 'public', 'data', 'gurugranth.db'),
+  ]
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p
+  }
+  return candidates[0]
+}
+
+const DB_PATH = findDbPath()
 
 async function getDb(): Promise<any | null> {
   if (db) return db
@@ -17,7 +29,7 @@ async function getDb(): Promise<any | null> {
 }
 
 async function init() {
-  if (!fs.existsSync(DB_PATH)) return
+  if (!DB_PATH || !fs.existsSync(DB_PATH)) return
   try {
     const initSqlJs = (await import('sql.js')).default
     SQL = await initSqlJs()
