@@ -29,7 +29,7 @@ function buildPrompt(source, page, verses) {
   const headnote = total > sample.length
     ? `\n\n(Note: This ${pageLabel.toLowerCase()} has ${total} verses. The first ${sample.length} are shown above.)`
     : ''
-  return `Here are key verses from ${label}, ${pageLabel} ${page}:\n\n${body}${headnote}\n\nRespond in exactly this format:\n\n### The Wisdom\n(one sentence capturing the essence of this ${pageLabel.toLowerCase()})\n\n### In Simple Words\n(explain like talking to a 10-year-old, 2-3 sentences)`
+  return `Here are key verses from ${label}, ${pageLabel} ${page}:\n\n${body}${headnote}\n\nRespond in exactly this format (use ONLY these 3 sections, nothing else):\n\n### The Wisdom\n(one sentence capturing the essence of this ${pageLabel.toLowerCase()})\n\n### In Simple Words\n(explain like talking to a 10-year-old, 2-3 sentences)\n\n### How To Live It\n(a concrete practical action for the reader today, 1-2 sentences)`
 }
 
 async function ollamaChat(prompt) {

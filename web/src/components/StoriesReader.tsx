@@ -120,21 +120,20 @@ export default function StoriesReader({ initialSource, initialAng }: { initialSo
               slideDir ? (slideDir === "left" ? "animate-slide-right" : "animate-slide-left") : "animate-fade-slide"
             }`}
           >
-            {data.verses.map((verse) => (
-              <div key={verse.id} className="space-y-2">
+            {data.verses.map((verse, i) => (
+              <div key={verse.id} className="space-y-2 pb-4 border-b border-white/5 last:border-b-0">
                 <p className="text-xl md:text-2xl font-likhita leading-relaxed text-white" dir="auto">{verse.gurmukhi}</p>
                 <p className="text-sm leading-relaxed text-[#a89bc2] border-l-2 border-[#d4a574]/40 pl-3">{verse.translation}</p>
                 {(verse.raag || verse.author) && (
                   <p className="text-[10px] text-white/20">{verse.raag}{verse.author ? ` • ${verse.author}` : ""}</p>
                 )}
+                {data.explanation && (
+                  <div className="mt-3 pl-3 border-l-2 border-[#d4a574]/20">
+                    <ExplanationDisplay text={data.explanation} />
+                  </div>
+                )}
               </div>
             ))}
-
-            {data.explanation && (
-              <div className="pt-4 border-t border-white/10">
-                <ExplanationDisplay text={data.explanation} />
-              </div>
-            )}
           </div>
         )}
 
@@ -155,22 +154,25 @@ export default function StoriesReader({ initialSource, initialAng }: { initialSo
 function ExplanationDisplay({ text }: { text: string }) {
   if (!text || !text.trim()) return null;
 
+  const keepSections = new Set(["the wisdom", "in simple words", "how to live it"]);
   const sections: { title: string; body: string }[] = [];
   const parts = text.split(/###\s+/);
   for (const part of parts) {
     if (!part.trim()) continue;
-    const colon = part.indexOf("\n");
-    const title = colon > 0 ? part.slice(0, colon).trim() : "";
-    const body = colon > 0 ? part.slice(colon + 1).trim() : part.trim();
-    if (title && body) sections.push({ title, body });
+    const newline = part.indexOf("\n");
+    const title = newline > 0 ? part.slice(0, newline).trim() : "";
+    const body = newline > 0 ? part.slice(newline + 1).trim() : part.trim();
+    if (title && body && keepSections.has(title.toLowerCase())) {
+      sections.push({ title, body });
+    }
   }
 
   if (sections.length === 0) {
-    return <p className="text-xs text-[#a89bc2] leading-relaxed">{text.trim()}</p>;
+    return <p className="text-xs text-[#a89bc2] leading-relaxed italic">No simple meaning available for this verse.</p>;
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {sections.map((s, i) => (
         <p key={i} className="text-xs text-[#a89bc2] leading-relaxed">
           <span className="font-medium text-[#d4a574]">{s.title}:</span> {s.body}
