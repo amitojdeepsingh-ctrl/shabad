@@ -129,11 +129,13 @@ export default function StoriesReader({ initialSource, initialAng }: { initialSo
                 )}
                 {data.explanation && (
                   <div className="mt-3 pl-3 border-l-2 border-[#d4a574]/20">
-                    <ExplanationDisplay text={data.explanation} />
+                    <ExplanationDisplay text={data.explanation} mode="per-verse" />
                   </div>
                 )}
               </div>
             ))}
+
+            {data.explanation && <ExplanationDisplay text={data.explanation} mode="page-bottom" />}
           </div>
         )}
 
@@ -151,10 +153,13 @@ export default function StoriesReader({ initialSource, initialAng }: { initialSo
   );
 }
 
-function ExplanationDisplay({ text }: { text: string }) {
+function ExplanationDisplay({ text, mode }: { text: string; mode: "per-verse" | "page-bottom" }) {
   if (!text || !text.trim()) return null;
 
-  const keepSections = new Set(["the wisdom", "in simple words", "how to live it"]);
+  const perVerseSections = new Set(["the wisdom", "in simple words"]);
+  const pageBottomSections = new Set(["how to live it", "real life application"]);
+  const allowed = mode === "per-verse" ? perVerseSections : pageBottomSections;
+
   const sections: { title: string; body: string }[] = [];
   const parts = text.split(/###\s+/);
   for (const part of parts) {
@@ -162,13 +167,24 @@ function ExplanationDisplay({ text }: { text: string }) {
     const newline = part.indexOf("\n");
     const title = newline > 0 ? part.slice(0, newline).trim() : "";
     const body = newline > 0 ? part.slice(newline + 1).trim() : part.trim();
-    if (title && body && keepSections.has(title.toLowerCase())) {
+    if (title && body && allowed.has(title.toLowerCase())) {
       sections.push({ title, body });
     }
   }
 
-  if (sections.length === 0) {
-    return <p className="text-xs text-[#a89bc2] leading-relaxed italic">No simple meaning available for this verse.</p>;
+  if (sections.length === 0) return null;
+
+  if (mode === "page-bottom") {
+    return (
+      <div className="pt-6 border-t border-white/10 mt-6 space-y-3">
+        {sections.map((s, i) => (
+          <div key={i}>
+            <p className="text-xs font-medium text-[#d4a574] uppercase tracking-wider mb-1">{s.title}</p>
+            <p className="text-sm text-[#a89bc2] leading-relaxed">{s.body}</p>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
