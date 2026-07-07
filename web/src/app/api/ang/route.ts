@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVersesByAng, getPageExplanation } from "@/lib/db";
+import { getVersesByAng, getPageExplanation, getDbStatus } from "@/lib/db";
 import { SOURCES, type ScriptureSource } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
@@ -10,6 +10,19 @@ export async function GET(req: NextRequest) {
 
   if (n < 1 || n > info.pages) {
     return NextResponse.json({ verses: [], explanation: null, source, ang: n, info });
+  }
+
+  const dbStatus = await getDbStatus();
+
+  if (!dbStatus.ready) {
+    return NextResponse.json({
+      verses: [],
+      explanation: null,
+      source,
+      ang: n,
+      info,
+      error: `DB not loaded: ${dbStatus.error || 'unknown'}`,
+    });
   }
 
   const [verses, explanation] = await Promise.all([

@@ -17,18 +17,24 @@ async function init() {
     const initSqlJs = (await import('sql.js')).default
     const SQL = await initSqlJs({
       locateFile: (file: string) => {
-        const p = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file)
-        if (fs.existsSync(p)) return p
-        return '/node_modules/sql.js/dist/' + file
+        // 1. Filesystem: node_modules (local dev, Docker)
+        const local = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file)
+        if (fs.existsSync(local)) return local
+        // 2. Filesystem: public/wasm (copied there for Vercel)
+        const pub = path.join(process.cwd(), 'public', 'wasm', file)
+        if (fs.existsSync(pub)) return pub
+        // 3. CDN (Vercel serverless, most reliable)
+        return `https://cdn.jsdelivr.net/npm/sql.js@1.14.1/dist/${file}`
       },
     })
 
     let buffer: Buffer | null = null
 
-    // Try filesystem paths (local dev, Docker)
+    // Try filesystem paths (local dev, Docker, Vercel with traceIncludes)
     const candidates = [
       path.join(process.cwd(), 'public', 'data', 'gurugranth.db'),
       path.join(process.cwd(), 'data', 'gurugranth.db'),
+      path.join(process.cwd(), '.next', 'public', 'data', 'gurugranth.db'),
     ]
     for (const p of candidates) {
       if (fs.existsSync(p)) {
@@ -37,13 +43,25 @@ async function init() {
       }
     }
 
-    // Fallback: fetch via HTTP (Vercel serves public/ as static assets)
-    if (!buffer && process.env.VERCEL_URL) {
-      const url = `https://${process.env.VERCEL_URL}/data/gurugranth.db`
-      const res = await fetch(url)
-      if (res.ok) {
-        const ab = await res.arrayBuffer()
-        buffer = Buffer.from(ab)
+    // Fallback 1: fetch via HTTP from self (Vercel serves public/ as static assets)
+    if (!buffer) {
+      const urls: string[] = []
+      if (process.env.VERCEL_URL) {
+        urls.push(`https://${process.env.VERCEL_URL}/data/gurugranth.db`)
+      }
+      if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+        urls.push(`https://${process.env.NEXT_PUBLIC_VERCEL_URL}/data/gurugranth.db`)
+      }
+      urls.push('/data/gurugranth.db') // relative URL fallback
+      for (const url of urls) {
+        try {
+          const res = await fetch(url)
+          if (res.ok) {
+            const ab = await res.arrayBuffer()
+            buffer = Buffer.from(ab)
+            break
+          }
+        } catch { continue }
       }
     }
 
@@ -80,6 +98,11 @@ function queryOne(d: any, sql: string, params: any[] = []): any | null {
   }
   stmt.free()
   return result
+}
+
+export async function getDbStatus(): Promise<{ ready: boolean; error?: string }> {
+  const d = await getDb()
+  return { ready: d !== null, error: d === null ? 'init returned null (see server logs)' : undefined }
 }
 
 export async function getVersesByAng(ang: number, source = 'ggs'): Promise<Verse[]> {
